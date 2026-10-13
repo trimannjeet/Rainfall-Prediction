@@ -1035,3 +1035,259 @@ h3 {
         grid-template-columns: 1fr;
     }
 }
+
+/* DISTRICT PICKER AND DASHBOARD POLISH */
+
+:root {
+    --bg: #08111e;
+    --sidebar: #0b1523;
+    --panel: #111f31;
+    --panel-light: #172a40;
+    --border: rgba(159, 183, 220, 0.16);
+    --text: #f2f7ff;
+    --muted: #9aacc4;
+    --blue: #70b8ff;
+    --cyan: #65e1d5;
+}
+
+body {
+    background:
+        radial-gradient(ellipse at 76% -12%, rgba(38, 100, 150, 0.24), transparent 43%),
+        radial-gradient(ellipse at 8% 40%, rgba(31, 76, 105, 0.10), transparent 38%),
+        var(--bg);
+}
+
+.sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    background: rgba(9, 18, 31, 0.94);
+    backdrop-filter: blur(18px);
+}
+
+.main-content {
+    max-width: 1510px;
+    padding-top: clamp(28px, 4vw, 54px);
+    padding-bottom: 42px;
+}
+
+.topbar {
+    margin-bottom: 34px;
+}
+
+.live-badge {
+    padding: 11px 16px;
+    border-color: rgba(101, 225, 213, 0.2);
+    background: rgba(28, 76, 79, 0.2);
+    color: #b7f3e8;
+}
+
+.search-panel {
+    position: relative;
+    z-index: 2;
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 0.9fr);
+    gap: clamp(20px, 4vw, 48px);
+    margin-bottom: 38px;
+    padding: clamp(24px, 3vw, 36px);
+    border-color: rgba(118, 175, 218, 0.2);
+    background:
+        radial-gradient(ellipse at 12% 0%, rgba(73, 151, 186, 0.13), transparent 55%),
+        linear-gradient(125deg, rgba(19, 36, 56, 0.98), rgba(14, 27, 44, 0.95));
+    box-shadow: 0 20px 55px rgba(0, 0, 0, 0.18);
+}
+
+.search-copy h2 {
+    font-size: clamp(22px, 2.4vw, 29px);
+    letter-spacing: -0.9px;
+}
+
+.search-copy p {
+    max-width: 480px;
+    font-size: 13px;
+}
+
+.section-kicker {
+    letter-spacing: 1.5px;
+}
+
+.search-form label {
+    margin-bottom: 10px;
+    color: #d5e2f3;
+    font-size: 12px;
+}
+
+.search-controls {
+    align-items: stretch;
+}
+
+.city-picker {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+}
+
+.search-controls .city-picker input {
+    min-height: 48px;
+    padding: 13px 15px;
+    border-color: rgba(159, 183, 220, 0.2);
+    background: rgba(7, 16, 29, 0.88);
+    font-size: 13px;
+}
+
+.search-controls .city-picker input::placeholder {
+    color: #768aa4;
+}
+
+.city-options {
+    position: absolute;
+    top: calc(100% + 9px);
+    right: 0;
+    left: 0;
+    z-index: 10;
+    display: block;
+    max-height: min(330px, 55vh);
+    overflow-y: auto;
+    padding: 7px;
+    border: 1px solid rgba(127, 174, 211, 0.25);
+    border-radius: 14px;
+    background: #101e30;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.42);
+    overscroll-behavior: contain;
+    scrollbar-color: #47627e #101e30;
+    scrollbar-width: thin;
+}
+
+.city-options[hidden] {
+    display: none;
+}
+
+.city-option {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 11px 12px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.16s ease, color 0.16s ease;
+}
+
+.search-controls .city-picker .city-option {
+    min-height: 38px;
+    padding: 9px 12px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 500;
+    text-align: left;
+    box-shadow: none;
+    transform: none;
+}
+
+.search-controls .city-picker .city-option:hover,
+.search-controls .city-picker .city-option:focus-visible {
+    outline: none;
+    background: rgba(92, 168, 207, 0.13);
+    color: var(--text);
+    filter: none;
+}
+
+.city-option-name {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.city-option-detail {
+    color: #9aacc4;
+    font-size: 11px;
+}
+
+.city-options-empty {
+    margin: 0;
+    padding: 14px 12px;
+    color: #aebdd0;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.search-controls > button {
+    min-height: 48px;
+    padding: 0 20px;
+    font-size: 12px;
+    box-shadow: 0 8px 20px rgba(72, 158, 206, 0.15);
+}
+
+.message {
+    margin-top: -18px;
+}
+
+.section-heading {
+    margin-bottom: 20px;
+}
+
+.metric-card,
+.chart-card,
+.weekly-card,
+.rainfall-summary-card {
+    border-color: rgba(159, 183, 220, 0.15);
+    background: linear-gradient(145deg, rgba(19, 33, 52, 0.96), rgba(13, 24, 39, 0.96));
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.10);
+}
+
+.metric-card {
+    padding: 21px;
+}
+
+.metric-value {
+    margin-top: 25px;
+}
+
+.hero-card,
+.live-forecast-card {
+    border-color: rgba(112, 184, 255, 0.25);
+    box-shadow: 0 18px 46px rgba(0, 0, 0, 0.16);
+}
+
+.weekly-cards {
+    gap: 14px;
+}
+
+.weekly-card {
+    padding: 18px;
+}
+
+.forecast-disclaimer {
+    margin-top: 18px;
+}
+
+@media (max-width: 1050px) {
+    .search-panel {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 650px) {
+    .sidebar {
+        position: static;
+        height: auto;
+    }
+
+    .main-content {
+        padding-top: 26px;
+    }
+
+    .search-controls {
+        flex-direction: column;
+    }
+
+    .city-options {
+        max-height: 45vh;
+    }
+}

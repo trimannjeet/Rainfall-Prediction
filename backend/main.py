@@ -7,7 +7,8 @@ from collections import defaultdict
 
 import requests
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI(
     title="RainfallAI 2026",
@@ -15,18 +16,13 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Allow the frontend to communicate with the backend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # Open-Meteo API endpoints
 GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"
 WEATHER_URL = "https://api.open-meteo.com/v1/forecast"
+PUNJAB_STATE = "punjab"
+INDIA_COUNTRY_CODE = "IN"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+FRONTEND_PATH = PROJECT_ROOT / "frontend"
 
 
 def describe_weather_code(code):
@@ -68,14 +64,71 @@ def describe_weather_code(code):
     )
 
 
+def find_punjab_city(city):
+    """Resolve a city only when the geocoder identifies it as Punjab, India."""
+    try:
+        geo_response = requests.get(
+            GEOCODING_URL,
+            params={
+                "name": city,
+                "count": 10,
+                "language": "en",
+                "format": "json",
+                "countryCode": INDIA_COUNTRY_CODE,
+            },
+            timeout=15,
+        )
+        geo_response.raise_for_status()
+        geo_data = geo_response.json()
+    except requests.RequestException as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"City lookup service request failed: {exc}",
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="The city lookup service returned unexpected data.",
+        ) from exc
+
+    if not isinstance(geo_data, dict):
+        raise HTTPException(
+            status_code=502,
+            detail="The city lookup service returned unexpected data.",
+        )
+
+    locations = geo_data.get("results", [])
+    if not isinstance(locations, list):
+        raise HTTPException(
+            status_code=502,
+            detail="The city lookup service returned unexpected data.",
+        )
+
+    punjab_locations = [
+        location
+        for location in locations
+        if isinstance(location, dict)
+        and isinstance(location.get("country_code"), str)
+        and location["country_code"].upper() == INDIA_COUNTRY_CODE
+        and isinstance(location.get("admin1"), str)
+        and location["admin1"].strip().casefold() == PUNJAB_STATE
+    ]
+
+    if not punjab_locations:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"Could not find {city} in Punjab, India. "
+                "Enter a city located in Punjab."
+            ),
+        )
+
+    return punjab_locations[0]
+
+
 @app.get("/")
 def home():
-    return {
-        "project": "RainfallAI 2026",
-        "status": "running",
-        "message": "Live weather forecast API is ready",
-        "docs": "/docs",
-    }
+    return FileResponse(FRONTEND_PATH / "index.html")
 
 
 @app.get("/health")
@@ -94,31 +147,9 @@ def predict_tomorrow(
         max_length=100,
     )
 ):
-    # STEP 1: Find the city's latitude and longitude
+    # STEP 1: Resolve the city within Punjab, India
     try:
-        geo_response = requests.get(
-            GEOCODING_URL,
-            params={
-                "name": city,
-                "count": 1,
-                "language": "en",
-                "format": "json",
-            },
-            timeout=15,
-        )
-        geo_response.raise_for_status()
-        geo_data = geo_response.json()
-
-        locations = geo_data.get("results", [])
-
-        if not locations:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Could not find city: {city}",
-            )
-
-        location = locations[0]
-
+        location = find_punjab_city(city)
         latitude = location["latitude"]
         longitude = location["longitude"]
         resolved_city = location["name"]
@@ -130,6 +161,16 @@ def predict_tomorrow(
             params={
                 "latitude": latitude,
                 "longitude": longitude,
+                "current": (
+                    "temperature_2m,"
+                    "relative_humidity_2m,"
+                    "apparent_temperature,"
+                    "precipitation,"
+                    "rain,"
+                    "showers,"
+                    "weather_code,"
+                    "wind_speed_10m"
+                ),
                 "daily": (
                     "precipitation_sum,"
                     "precipitation_probability_max,"
@@ -160,19 +201,80 @@ def predict_tomorrow(
             detail="The weather service returned unexpected data.",
         ) from exc
 
+    if not isinstance(weather_data, dict):
+        raise HTTPException(
+            status_code=502,
+            detail="The weather service returned unexpected data.",
+        )
+
+    current = weather_data.get("current")
+    current_fields = (
+        "time",
+        "temperature_2m",
+        "relative_humidity_2m",
+        "apparent_temperature",
+        "precipitation",
+        "rain",
+        "showers",
+        "weather_code",
+        "wind_speed_10m",
+    )
+    if (
+        not isinstance(current, dict)
+        or any(field not in current for field in current_fields)
+        or not isinstance(current.get("time"), str)
+    ):
+        raise HTTPException(
+            status_code=502,
+            detail="The weather service returned incomplete current conditions.",
+        )
+
     # STEP 3: Find tomorrow's local date in the forecast
-    daily = weather_data.get("daily", {})
+    daily = weather_data.get("daily")
+    if not isinstance(daily, dict):
+        raise HTTPException(
+            status_code=502,
+            detail="The weather service returned incomplete daily data.",
+        )
+
     dates = daily.get("time", [])
 
-    if not dates:
+    if (
+        not isinstance(dates, list)
+        or not dates
+        or any(not isinstance(item, str) for item in dates)
+    ):
         raise HTTPException(
             status_code=502,
             detail="No daily forecast dates were returned.",
         )
 
-    tomorrow = (
-        date.fromisoformat(dates[0]) + timedelta(days=1)
-    ).isoformat()
+    daily_fields = (
+        "precipitation_sum",
+        "precipitation_probability_max",
+        "temperature_2m_max",
+        "temperature_2m_min",
+        "weather_code",
+    )
+    if any(
+        not isinstance(daily.get(field), list)
+        or len(daily[field]) != len(dates)
+        for field in daily_fields
+    ):
+        raise HTTPException(
+            status_code=502,
+            detail="The weather service returned incomplete daily data.",
+        )
+
+    try:
+        tomorrow = (
+            date.fromisoformat(dates[0]) + timedelta(days=1)
+        ).isoformat()
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="The weather service returned an invalid forecast date.",
+        ) from exc
 
     if tomorrow not in dates:
         raise HTTPException(
@@ -197,6 +299,19 @@ def predict_tomorrow(
             "country": country,
             "latitude": latitude,
             "longitude": longitude,
+            "timezone": weather_data.get("timezone"),
+        },
+        "current_conditions": {
+            "time": current["time"],
+            "temperature_c": current["temperature_2m"],
+            "relative_humidity_percent": current["relative_humidity_2m"],
+            "feels_like_c": current["apparent_temperature"],
+            "precipitation_mm": current["precipitation"],
+            "rain_mm": current["rain"],
+            "showers_mm": current["showers"],
+            "weather_code": current["weather_code"],
+            "wind_speed_kmh": current["wind_speed_10m"],
+            "summary": describe_weather_code(current["weather_code"]),
         },
         "forecast_date": tomorrow,
         "forecast": {
@@ -208,17 +323,14 @@ def predict_tomorrow(
             "summary": describe_weather_code(weather_code),
         },
         "note": (
-            "This is the weather provider's forecast, "
-            "not a verified prediction from the trained ML model."
+            "Current conditions and forecasts are supplied by Open-Meteo "
+            "and are not verified predictions from the trained ML model."
         ),
     }
 
 # Historical rainfall dataset
 DATASET_PATH = (
-    Path(__file__).resolve().parent.parent
-    / "data"
-    / "raw"
-    / "ludhiana_rainfall_reference_2022_2025.csv"
+    PROJECT_ROOT / "data" / "raw" / "ludhiana_rainfall_reference_2022_2025.csv"
 )
 
 
@@ -354,30 +466,9 @@ def predict_weekly(
 ):
     """Return the next seven days of provider-supplied forecasts."""
 
-    # 1. Find the city
+    # 1. Resolve the city within Punjab, India
     try:
-        geo_response = requests.get(
-            GEOCODING_URL,
-            params={
-                "name": city,
-                "count": 1,
-                "language": "en",
-                "format": "json",
-            },
-            timeout=15,
-        )
-        geo_response.raise_for_status()
-        geo_data = geo_response.json()
-
-        locations = geo_data.get("results", [])
-
-        if not locations:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Could not find city: {city}",
-            )
-
-        location = locations[0]
+        location = find_punjab_city(city)
         latitude = location["latitude"]
         longitude = location["longitude"]
 
@@ -410,16 +501,46 @@ def predict_weekly(
             status_code=502,
             detail=f"Weather service request failed: {exc}",
         ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="The weather service returned unexpected data.",
+        ) from exc
 
     # 3. Prepare the response
-    daily = weather_data.get("daily", {})
+    if not isinstance(weather_data, dict):
+        raise HTTPException(
+            status_code=502,
+            detail="The weather service returned unexpected data.",
+        )
+
+    daily = weather_data.get("daily")
+    if not isinstance(daily, dict):
+        raise HTTPException(
+            status_code=502,
+            detail="The weather service returned incomplete daily data.",
+        )
+
     dates = daily.get("time", [])
 
-    if not dates:
+    if (
+        not isinstance(dates, list)
+        or not dates
+        or any(not isinstance(item, str) for item in dates)
+    ):
         raise HTTPException(
             status_code=502,
             detail="No daily forecast dates were returned.",
         )
+
+    try:
+        for forecast_date in dates:
+            date.fromisoformat(forecast_date)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="The weather service returned an invalid forecast date.",
+        ) from exc
 
     required_fields = [
         "precipitation_sum",
@@ -430,7 +551,8 @@ def predict_weekly(
     ]
 
     if any(
-        field not in daily or len(daily[field]) != len(dates)
+        not isinstance(daily.get(field), list)
+        or len(daily[field]) != len(dates)
         for field in required_fields
     ):
         raise HTTPException(
@@ -469,3 +591,6 @@ def predict_weekly(
             "predictions from the trained machine-learning model."
         ),
     }
+
+
+app.mount("/", StaticFiles(directory=FRONTEND_PATH), name="frontend")

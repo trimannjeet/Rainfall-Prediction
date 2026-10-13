@@ -1,11 +1,221 @@
 
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = "";
 
 const searchForm = document.getElementById("search-form");
 const cityInput = document.getElementById("city-input");
 const forecastButton = document.getElementById("forecast-button");
 const buttonText = document.getElementById("button-text");
 const messageBox = document.getElementById("message");
+const cityOptions = document.getElementById("city-options");
+let activeCityOption = -1;
+
+const punjabCities = [
+    "Abohar",
+    "Adampur",
+    "Ahmedgarh",
+    "Ajnala",
+    "Amloh",
+    "Amritsar",
+    "Badhni Kalan",
+    "Bagha Purana",
+    "Balachaur",
+    "Banga",
+    "Banur",
+    "Barnala",
+    "Batala",
+    "Bathinda",
+    "Begowal",
+    "Behrampur",
+    "Bhagta",
+    "Bhawanigarh",
+    "Bhikhi",
+    "Bhogpur",
+    "Bilga",
+    "Budhlada",
+    "Chamkaur Sahib",
+    "Dasuya",
+    "Dera Baba Nanak",
+    "Dhuri",
+    "Dinanagar",
+    "Dirba",
+    "Faridkot",
+    "Fatehgarh Churian",
+    "Fazilka",
+    "Ferozepur",
+    "Garhshankar",
+    "Ghanaur",
+    "Goniana Mandi",
+    "Gurdaspur",
+    "Guru Har Sahai",
+    "Hajipur",
+    "Hariana",
+    "Hoshiarpur",
+    "Jagraon",
+    "Jalandhar",
+    "Jandiala",
+    "Kapurthala",
+    "Kartarpur",
+    "Khamanon",
+    "Khanna",
+    "Kharar",
+    "Khem Karan",
+    "Kotkapura",
+    "Ludhiana",
+    "Machhiwara",
+    "Majitha",
+    "Maler Kotla",
+    "Malout",
+    "Mansa",
+    "Moga",
+    "Mohali",
+    "Moonak",
+    "Morinda",
+    "Mukerian",
+    "Muktsar",
+    "Nabha",
+    "Nakodar",
+    "Nangal",
+    "Nawanshahr",
+    "Nurmahal",
+    "Pathankot",
+    "Patiala",
+    "Patti",
+    "Phagwara",
+    "Phillaur",
+    "Qadian",
+    "Rahon",
+    "Raikot",
+    "Rajpura",
+    "Rampura Phul",
+    "Rupnagar",
+    "Samana",
+    "Samrala",
+    "Sanaur",
+    "Sangrur",
+    "Sardulgarh",
+    "Shahkot",
+    "Sirhind",
+    "Sultanpur Lodhi",
+    "Sunam",
+    "Talwandi Sabo",
+    "Tanda",
+    "Tarn Taran",
+    "Zira",
+    "Zirakpur",
+];
+
+function closeCityOptions() {
+    cityOptions.hidden = true;
+    cityInput.setAttribute("aria-expanded", "false");
+    cityInput.removeAttribute("aria-activedescendant");
+    activeCityOption = -1;
+}
+
+function renderCityOptions(search = "") {
+    const query = search.trim().toLocaleLowerCase();
+    const matches = punjabCities.filter((city) =>
+        city.toLocaleLowerCase().includes(query)
+    );
+
+    cityOptions.replaceChildren();
+    activeCityOption = -1;
+    cityInput.removeAttribute("aria-activedescendant");
+
+    if (!matches.length) {
+        const emptyState = document.createElement("p");
+        emptyState.className = "city-options-empty";
+        emptyState.textContent = "No matching city. You can still type a Punjab place name.";
+        cityOptions.append(emptyState);
+    } else {
+        matches.forEach((city, index) => {
+            const option = document.createElement("button");
+            option.type = "button";
+            option.className = "city-option";
+            option.id = `city-option-${index}`;
+            option.setAttribute("role", "option");
+            option.setAttribute("aria-selected", "false");
+            option.dataset.city = city;
+
+            const cityName = document.createElement("span");
+            cityName.className = "city-option-name";
+            cityName.textContent = city;
+
+            const locationLabel = document.createElement("span");
+            locationLabel.className = "city-option-detail";
+            locationLabel.textContent = "Punjab";
+
+            option.append(cityName, locationLabel);
+            option.addEventListener("click", () => {
+                cityInput.value = city;
+                closeCityOptions();
+                cityInput.focus();
+            });
+            cityOptions.append(option);
+        });
+    }
+
+    cityOptions.hidden = false;
+    cityInput.setAttribute("aria-expanded", "true");
+}
+
+cityInput.addEventListener("focus", () => renderCityOptions());
+cityInput.addEventListener("input", () => renderCityOptions(cityInput.value));
+cityInput.addEventListener("keydown", (event) => {
+    if (
+        (event.key === "ArrowDown" || event.key === "ArrowUp")
+        && cityOptions.hidden
+    ) {
+        renderCityOptions(cityInput.value);
+    }
+    const options = [...cityOptions.querySelectorAll(".city-option")];
+
+    if (event.key === "ArrowDown" && options.length) {
+        event.preventDefault();
+        if (cityOptions.hidden) renderCityOptions(cityInput.value);
+        activeCityOption = Math.min(activeCityOption + 1, options.length - 1);
+    } else if (event.key === "ArrowUp" && options.length) {
+        event.preventDefault();
+        activeCityOption = Math.max(activeCityOption - 1, 0);
+    } else if (
+        event.key === "Enter"
+        && !cityOptions.hidden
+        && activeCityOption >= 0
+        && options[activeCityOption]
+    ) {
+        event.preventDefault();
+        cityInput.value = options[activeCityOption].dataset.city;
+        closeCityOptions();
+    } else if (event.key === "Escape") {
+        closeCityOptions();
+        return;
+    } else {
+        return;
+    }
+
+    options.forEach((option, index) => {
+        option.setAttribute(
+            "aria-selected",
+            String(index === activeCityOption)
+        );
+    });
+    if (options[activeCityOption]) {
+        cityInput.setAttribute(
+            "aria-activedescendant",
+            options[activeCityOption].id
+        );
+        options[activeCityOption].scrollIntoView({ block: "nearest" });
+    } else {
+        cityInput.removeAttribute("aria-activedescendant");
+    }
+});
+
+cityInput.addEventListener("blur", (event) => {
+    if (!cityOptions.contains(event.relatedTarget)) closeCityOptions();
+});
+
+document.addEventListener("pointerdown", (event) => {
+    if (!event.target.closest(".city-picker")) closeCityOptions();
+});
 
 function showMessage(message, type = "success") {
     messageBox.textContent = message;
@@ -103,8 +313,23 @@ function updateApiStatus(text, healthy = false) {
 function renderForecast(data) {
     const forecast = data.forecast;
     const location = data.location;
+    const current = data.current_conditions;
 
-    
+    document.getElementById("current-temperature").textContent =
+        `${formatNumber(current.temperature_c)}°C`;
+    document.getElementById("current-precipitation").textContent =
+        `${formatNumber(current.precipitation_mm)} mm`;
+    document.getElementById("current-humidity").textContent =
+        `${formatNumber(current.relative_humidity_percent, 0)}%`;
+    document.getElementById("current-wind").textContent =
+        `${formatNumber(current.wind_speed_kmh)} km/h`;
+    document.getElementById("current-feels-like").textContent =
+        `Feels like ${formatNumber(current.feels_like_c)}°C`;
+    document.getElementById("current-weather-summary").textContent =
+        `${current.summary} · ${location.city}`;
+    document.getElementById("current-weather-updated").textContent =
+        `Latest provider update: ${current.time.replace("T", " ")} (${location.timezone || "local time"})`;
+
     // Update the new live forecast card
     const liveRainfall = document.getElementById("live-rainfall");
     const liveSummary = document.getElementById("live-forecast-summary");
@@ -205,7 +430,7 @@ function renderForecast(data) {
     updateApiStatus("Connected", true);
 }
 
-async function loadForecast(city) {
+async function loadForecast(city, showSuccess = true) {
     hideMessage();
 
     forecastButton.disabled = true;
@@ -214,7 +439,7 @@ async function loadForecast(city) {
     updateApiStatus("Fetching forecast...", false);
 
     try {
-        const url = new URL(`${API_BASE_URL}/predict`);
+        const url = new URL(`${API_BASE_URL}/predict`, window.location.origin);
         url.searchParams.set("city", city);
 
         const response = await fetch(url);
@@ -235,25 +460,33 @@ async function loadForecast(city) {
             throw new Error(detail);
         }
 
-        if (data.status !== "success" || !data.forecast || !data.location) {
+        if (
+            data.status !== "success"
+            || !data.forecast
+            || !data.location
+            || !data.current_conditions
+        ) {
             throw new Error("The backend response is missing forecast information.");
         }
 
         renderForecast(data);
         loadWeeklyForecast(city);
 
-        showMessage(
-            `Forecast loaded successfully for ${data.location.city}.`,
-            "success"
-        );
+        if (showSuccess) {
+            showMessage(
+                `Current conditions and forecast loaded for ${data.location.city}, Punjab.`,
+                "success"
+            );
+        }
     } catch (error) {
-        updateApiStatus("Connection issue", false);
-
         let errorMessage = error.message || "An unexpected error occurred.";
 
         if (error instanceof TypeError) {
+            updateApiStatus("Connection issue", false);
             errorMessage =
-                "Cannot connect to the backend. Make sure your FastAPI server is running at http://127.0.0.1:8000.";
+                `Cannot connect to the backend. Start the app and open ${window.location.origin}.`;
+        } else {
+            updateApiStatus("Connected", true);
         }
 
         showMessage(errorMessage, "error");
@@ -278,6 +511,14 @@ searchForm.addEventListener("submit", (event) => {
 
 // Load the default city when the page opens.
 loadForecast(cityInput.value.trim());
+
+// Refresh provider conditions and forecasts periodically without a key.
+setInterval(() => {
+    const city = cityInput.value.trim();
+    if (city.length >= 2) {
+        loadForecast(city, false);
+    }
+}, 15 * 60 * 1000);
 
 // Update the selected sidebar link when clicked.
 document.querySelectorAll(".nav-link").forEach((link) => {
@@ -486,7 +727,10 @@ async function loadWeeklyForecast(city) {
     status.textContent = `Loading 7-day forecast for ${city}...`;
 
     try {
-        const url = new URL(`${API_BASE_URL}/predict/weekly`);
+        const url = new URL(
+            `${API_BASE_URL}/predict/weekly`,
+            window.location.origin
+        );
         url.searchParams.set("city", city.trim());
 
         const response = await fetch(url);
@@ -734,4 +978,3 @@ if (cardsContainer) {
         status.textContent = error.message;
     }
 }
-

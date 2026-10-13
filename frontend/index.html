@@ -12,7 +12,7 @@
         content="Explore tomorrow's rainfall forecast with RainfallAI 2026."
     >
 
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=5">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
@@ -69,22 +69,36 @@
                 <div class="search-copy">
                     <span class="section-kicker">YOUR WEATHER, SIMPLIFIED</span>
                     <h2>What will tomorrow bring?</h2>
-                    <p>Choose a city to explore its rainfall forecast.</p>
+                    <p>Search Punjab cities and towns, or scroll the list to choose a place for its live rainfall forecast.</p>
                 </div>
 
                 <form id="search-form" class="search-form">
-                    <label for="city-input">City name</label>
+                    <label for="city-input">Choose a district or city</label>
 
                     <div class="search-controls">
-                        <input
-                            type="text"
-                            id="city-input"
-                            value="Ludhiana"
-                            placeholder="Enter a city, e.g. Delhi"
-                            minlength="2"
-                            maxlength="100"
-                            required
-                        >
+                        <div class="city-picker">
+                            <input
+                                type="text"
+                                id="city-input"
+                                value="Ludhiana"
+                                placeholder="Search or browse Punjab cities"
+                                minlength="2"
+                                maxlength="100"
+                                role="combobox"
+                                aria-autocomplete="list"
+                                aria-controls="city-options"
+                                aria-expanded="false"
+                                autocomplete="off"
+                                required
+                            >
+                            <div
+                                id="city-options"
+                                class="city-options"
+                                role="listbox"
+                                aria-label="Punjab cities and towns"
+                                hidden
+                            ></div>
+                        </div>
 
                         <button type="submit" id="forecast-button">
                             <span id="button-text">Get forecast</span>
@@ -95,6 +109,61 @@
             </section>
 
             <div id="message" class="message hidden" role="status"></div>
+
+            <section id="current-conditions" class="details-section">
+                <div class="section-heading compact-heading">
+                    <div>
+                        <p class="eyebrow">CURRENT CONDITIONS · PUNJAB</p>
+                        <h2>Weather now</h2>
+                        <p id="current-weather-updated" class="muted">
+                            Waiting for the latest provider update...
+                        </p>
+                    </div>
+                    <span class="source-chip">Open-Meteo · no API key</span>
+                </div>
+
+                <div class="metrics-grid">
+                    <article class="metric-card">
+                        <div class="metric-top">
+                            <span class="metric-icon">🌡️</span>
+                            <span class="metric-label">Temperature</span>
+                        </div>
+                        <p class="metric-value" id="current-temperature">--°C</p>
+                        <p class="metric-caption" id="current-weather-summary">Current provider conditions</p>
+                    </article>
+
+                    <article class="metric-card">
+                        <div class="metric-top">
+                            <span class="metric-icon">🌦️</span>
+                            <span class="metric-label">Precipitation</span>
+                        </div>
+                        <p class="metric-value" id="current-precipitation">-- mm</p>
+                        <p class="metric-caption">At the provider's latest update</p>
+                    </article>
+
+                    <article class="metric-card">
+                        <div class="metric-top">
+                            <span class="metric-icon">💧</span>
+                            <span class="metric-label">Humidity</span>
+                        </div>
+                        <p class="metric-value" id="current-humidity">--%</p>
+                        <p class="metric-caption">Relative humidity</p>
+                    </article>
+
+                    <article class="metric-card">
+                        <div class="metric-top">
+                            <span class="metric-icon">💨</span>
+                            <span class="metric-label">Wind</span>
+                        </div>
+                        <p class="metric-value" id="current-wind">-- km/h</p>
+                        <p class="metric-caption" id="current-feels-like">Feels like --°C</p>
+                    </article>
+                </div>
+                <p class="forecast-disclaimer">
+                    Provider weather data is updated periodically, not a live local rain-gauge reading.
+                    This page refreshes it every 15 minutes.
+                </p>
+            </section>
 
             <!-- FORECAST HEADING -->
             <section id="forecast" class="section-heading">
@@ -368,6 +437,6 @@
         </main>
     </div>
 
-    <script src="script.js"></script>
+    <script src="script.js?v=5"></script>
 </body>
 </html>
