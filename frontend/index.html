@@ -9,10 +9,10 @@
 
     <meta
         name="description"
-        content="Explore historical rainfall estimates for Ludhiana."
+        content="Explore offline historical rainfall estimates for all 23 Punjab districts."
     >
 
-    <link rel="stylesheet" href="style.css?v=5">
+    <link rel="stylesheet" href="style.css?v=7">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
@@ -68,15 +68,44 @@
             <section class="search-panel">
                 <div class="search-copy">
                     <span class="section-kicker">NO WEATHER API REQUIRED</span>
-                    <h2>Historical rainfall for Ludhiana</h2>
-                    <p>Daily estimates compare each date with rainfall observations from Ludhiana in 2022–2025. They are not live weather forecasts.</p>
+                    <h2 id="selected-district-title">Historical rainfall by Punjab district</h2>
+                    <p>Choose a district to view daily rainfall estimates from the nearest ERA5 grid point using 2022–2025 history. These are not rain-gauge observations or live forecasts.</p>
                 </div>
 
-                <div class="search-form">
-                    <span class="section-kicker">AVAILABLE LOCATION</span>
-                    <h3>Ludhiana, Punjab, India</h3>
-                    <p>The local dataset does not include current weather or other cities.</p>
-                </div>
+                <form id="search-form" class="search-form">
+                    <label for="city-input">Select a Punjab district</label>
+                    <div class="search-controls">
+                        <select id="city-input" name="city">
+                            <option value="Amritsar">Amritsar</option>
+                            <option value="Barnala">Barnala</option>
+                            <option value="Bathinda">Bathinda</option>
+                            <option value="Faridkot">Faridkot</option>
+                            <option value="Fatehgarh Sahib">Fatehgarh Sahib</option>
+                            <option value="Fazilka">Fazilka</option>
+                            <option value="Ferozepur">Ferozepur</option>
+                            <option value="Gurdaspur">Gurdaspur</option>
+                            <option value="Hoshiarpur">Hoshiarpur</option>
+                            <option value="Jalandhar">Jalandhar</option>
+                            <option value="Kapurthala">Kapurthala</option>
+                            <option value="Ludhiana" selected>Ludhiana</option>
+                            <option value="Malerkotla">Malerkotla</option>
+                            <option value="Mansa">Mansa</option>
+                            <option value="Moga">Moga</option>
+                            <option value="Pathankot">Pathankot</option>
+                            <option value="Patiala">Patiala</option>
+                            <option value="Rupnagar">Rupnagar</option>
+                            <option value="Sahibzada Ajit Singh Nagar">Sahibzada Ajit Singh Nagar</option>
+                            <option value="Sangrur">Sangrur</option>
+                            <option value="Shaheed Bhagat Singh Nagar">Shaheed Bhagat Singh Nagar</option>
+                            <option value="Sri Muktsar Sahib">Sri Muktsar Sahib</option>
+                            <option value="Tarn Taran">Tarn Taran</option>
+                        </select>
+                        <button type="submit" id="forecast-button">
+                            <span id="button-text">Show estimates</span>
+                            <span aria-hidden="true"> →</span>
+                        </button>
+                    </div>
+                </form>
             </section>
 
             <div id="message" class="message hidden" role="status"></div>
@@ -139,7 +168,7 @@
             <section id="forecast" class="section-heading">
                 <div>
                     <p class="eyebrow">HISTORICAL RAINFALL ESTIMATE</p>
-                    <h2 id="forecast-location">Tomorrow's Ludhiana estimate</h2>
+                    <h2 id="forecast-location">Tomorrow's district estimate</h2>
                     <p id="forecast-date" class="muted">Loading historical estimate...</p>
                 </div>
 
@@ -239,8 +268,8 @@
         <div>
             <p class="eyebrow">OFFLINE HISTORICAL ESTIMATE</p>
             <h2>Tomorrow's rainfall estimate</h2>
-            <p class="muted">
-                Average rainfall observed on matching calendar dates in Ludhiana.
+            <p class="muted" id="live-forecast-description">
+                Average historical rainfall on matching calendar dates for the selected district.
             </p>
         </div>
         <span class="source-chip">NOT A LIVE FORECAST</span>
@@ -278,9 +307,9 @@
             Estimate date: waiting...
         </p>
 
-        <p class="forecast-disclaimer">
-            This is a historical estimate from Ludhiana observations, not a
-            live weather forecast or a verified prediction from the trained model.
+        <p class="forecast-disclaimer" id="live-estimate-disclaimer">
+            This is a historical estimate from the selected district's nearby ERA5 grid point,
+            not a live weather forecast or a verified prediction from the trained model.
         </p>
 
     </div>
@@ -337,8 +366,8 @@
         <div>
             <p class="eyebrow">HISTORICAL INSIGHTS</p>
             <h2>Monthly rainfall patterns</h2>
-            <p class="muted">
-                Historical daily averages from the Ludhiana reference dataset.
+            <p class="muted" id="analytics-description">
+                Historical daily averages from the selected district's nearby ERA5 grid point.
             </p>
         </div>
         <span class="source-chip">2022–2025 dataset</span>
@@ -392,22 +421,26 @@
                 <div>
                     <h3>Estimate transparency</h3>
                     <p>
-                    Estimates use Ludhiana rainfall observations from 2022–2025.
-                    The app does not call Open-Meteo or another weather API.
-                    These values describe past averages and are not predictions
-                    of actual future weather.
+                    Estimates use ERA5 gridded historical rainfall near each
+                    district headquarters for 2022–2025. They are not local
+                    rain-gauge measurements or predictions of actual future weather.
                     </p>
                 </div>
             </section>
 
             <footer class="footer">
                 <span>🌧️ RainfallAI</span>
-                <span>Historical Ludhiana rainfall estimates.</span>
+                <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">
+                    Historical weather data by Open-Meteo
+                </a>
+                <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
+                    District location data © OpenStreetMap contributors
+                </a>
             </footer>
 
         </main>
     </div>
 
-    <script src="script.js?v=6"></script>
+    <script src="script.js?v=7"></script>
 </body>
 </html>

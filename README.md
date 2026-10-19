@@ -1,18 +1,22 @@
-# Ludhiana Historical Rainfall Estimates
+# Punjab District Rainfall Estimates
 
-A Ludhiana-focused dashboard that serves offline historical rainfall estimates
-and monthly rainfall analysis from data included in the repository.
+A dashboard for all 23 Punjab districts. It serves offline historical daily
+rainfall estimates and monthly rainfall analysis from data included in the
+repository.
 
 > **Estimate transparency:** daily estimates compare the requested calendar
-> date with observed rainfall on that date in the included Ludhiana
-> 2022–2025 dataset. These historical averages are not live forecasts and do
-> not predict actual future weather. The dataset only covers Ludhiana.
+> date with 2022–2025 ERA5 gridded rainfall near the selected district's
+> headquarters. This is a single representative grid point per district, not
+> a district-wide average or local rain-gauge measurement. Estimates summarize
+> past data and are not live forecasts or predictions of actual future weather.
 
 ## Features
 
-- Offline daily and seven-day historical rainfall estimates for Ludhiana.
-- Historical monthly rainfall analytics using the included Ludhiana reference
-  dataset.
+- Offline daily and seven-day historical rainfall estimates for all 23 Punjab
+  districts.
+- District-specific monthly rainfall analytics.
+- The downloaded dataset is served locally; the running app makes no weather
+  API requests.
 - FastAPI serves the dashboard and API from one origin.
 
 ## Quick start
@@ -62,10 +66,24 @@ service root directory is the directory containing `render.yaml`,
 requirements, start Uvicorn on the port supplied by Render, and check
 `/health` to verify the service is running.
 
-The dashboard, API, and historical rainfall dataset are served by the same
-service. Forecast estimates and analytics do not call an external weather API.
-The dashboard uses Chart.js from a CDN for charts, so the charts require an
-internet connection; the forecast data itself is read from the local CSV.
+The dashboard, API, and district rainfall dataset are served by the same
+service. The app itself makes no external weather-data requests. Charts load
+Chart.js from a CDN and therefore need an internet connection.
+
+## Refreshing the historical dataset
+
+The bundled dataset contains daily ERA5 `rain_sum` data for 23 representative
+district-headquarters locations from 2022-01-01 through 2025-12-31. To fetch a
+fresh copy manually, run this from the repository root:
+
+```bash
+python scripts/download_punjab_district_rainfall.py
+```
+
+This one-time download requires internet access. The script validates the date
+coverage and values for every district and replaces the CSV only after all 23
+downloads succeed. The deployed app reads the committed CSV and does not call
+the archive API.
 
 ## Tests
 
@@ -108,21 +126,31 @@ generated files are excluded from Git.
 | Endpoint | Description |
 | --- | --- |
 | `GET /health` | Backend health status |
-| `GET /predict?city=Ludhiana` | Historical estimate for tomorrow |
-| `GET /predict/weekly?city=Ludhiana` | Seven daily historical estimates |
-| `GET /analytics/monthly` | Historical monthly rainfall statistics |
+| `GET /districts` | The 23 supported Punjab districts and representative headquarters |
+| `GET /predict?city=Amritsar` | Tomorrow's historical estimate for a district |
+| `GET /predict/weekly?city=Amritsar` | Seven daily historical estimates |
+| `GET /analytics/monthly?city=Amritsar` | District-specific monthly rainfall statistics |
 
-Daily estimate endpoints currently support Ludhiana only. Other cities return
-HTTP 404 because the included historical dataset does not contain their
-rainfall observations.
+The `city` query accepts district names and common headquarters aliases such as
+`Mohali`, `Ropar`, `Firozpur`, `Nawanshahr`, and `Muktsar`.
 
 ## Data and attribution
 
-Historical estimates and analytics use
-`data/raw/ludhiana_rainfall_reference_2022_2025.csv`. Other raw and processed
-CSVs support the research notebooks and evaluation reports. The saved trained
-model is retained for notebook evaluation; it is not used for these estimates
-because its inputs do not provide a future weather forecast.
+The app uses `data/raw/punjab_district_rainfall_2022_2025.csv`. Daily rainfall
+comes from the [Open-Meteo Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api)
+using ERA5 reanalysis data. The representative headquarters coordinates are
+resolved from the Open-Meteo geocoder; Malerkotla's coordinate is from
+[OpenStreetMap](https://www.openstreetmap.org/copyright).
+
+Open-Meteo API data is licensed under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); attribution links
+are included in the dashboard. OpenStreetMap data is © OpenStreetMap
+contributors and is licensed under the
+[ODbL](https://www.openstreetmap.org/copyright).
+
+The remaining Ludhiana raw/processed CSVs, model artifacts, notebooks, and
+reports are retained as research material; they are not required by the
+deployed district dashboard.
 
 The historical dataset and research artifacts are included as project
 materials. Verify the original source's redistribution terms before publishing
@@ -132,13 +160,14 @@ those datasets in a public repository.
 
 ```text
 backend/       FastAPI app and regression tests
-data/raw/      Source datasets
+data/raw/      Source research data and Punjab district archive
 data/processed/Derived analysis and evaluation data
 frontend/      Dashboard HTML, CSS, and JavaScript
 model/         Model and feature configuration used by evaluation
 models/        Regenerable training outputs (not committed)
 notebooks/     Data collection, analysis, training, and evaluation
 reports/       CSV evaluation reports
+scripts/       Historical dataset download utility
 ```
 
 ## License

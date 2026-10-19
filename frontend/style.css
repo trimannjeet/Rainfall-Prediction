@@ -259,7 +259,8 @@ h3 {
     gap: 8px;
 }
 
-.search-controls input {
+.search-controls input,
+.search-controls select {
     width: 100%;
     min-width: 0;
     padding: 13px 12px;
@@ -272,7 +273,8 @@ h3 {
     transition: border-color 0.2s;
 }
 
-.search-controls input:focus {
+.search-controls input:focus,
+.search-controls select:focus {
     border-color: var(--blue);
     box-shadow: 0 0 0 3px rgba(98, 181, 255, 0.09);
 }
@@ -669,6 +671,7 @@ h3 {
     }
 
     .search-controls input,
+    .search-controls select,
     .search-controls button {
         min-height: 45px;
     }

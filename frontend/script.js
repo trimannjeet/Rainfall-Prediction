@@ -1,5 +1,9 @@
 
 const API_BASE_URL = "";
+const searchForm = document.getElementById("search-form");
+const cityInput = document.getElementById("city-input");
+const forecastButton = document.getElementById("forecast-button");
+const buttonText = document.getElementById("button-text");
 const messageBox = document.getElementById("message");
 
 function showMessage(message, type = "success") {
@@ -80,7 +84,7 @@ function renderForecast(data) {
     document.getElementById("current-feels-like").textContent =
         `Feels like ${formatNumber(current.feels_like_c)}°C`;
     document.getElementById("current-weather-summary").textContent =
-        `${current.summary} · ${location.city}`;
+        `${current.summary} · ${location.district} district`;
     document.getElementById("current-weather-updated").textContent =
         "Current atmospheric conditions are not included in the historical dataset.";
 
@@ -119,7 +123,7 @@ function renderForecast(data) {
 
     if (liveDate) {
         liveDate.textContent =
-            `Estimate date: ${formatDate(data.forecast_date)} · ${location.city}`;
+            `Estimate date: ${formatDate(data.forecast_date)} · ${location.district} district`;
     }
 
     if (liveIcon) {
@@ -128,7 +132,15 @@ function renderForecast(data) {
 
 
     document.getElementById("forecast-location").textContent =
-        `${location.city} historical estimate`;
+        `${location.district} district historical estimate`;
+    document.getElementById("selected-district-title").textContent =
+        `Historical rainfall for ${location.district} district`;
+    document.getElementById("live-forecast-description").textContent =
+        `Average historical rainfall on matching calendar dates for ${location.district} district.`;
+    document.getElementById("live-estimate-disclaimer").textContent =
+        `This is a historical estimate for the ERA5 grid point near ${location.city}, not a live weather forecast or a verified prediction from the trained model.`;
+    document.getElementById("analytics-description").textContent =
+        `Historical daily averages from the ERA5 grid point near ${location.city}, ${location.district} district.`;
 
     document.getElementById("forecast-date").textContent =
         formatDate(data.forecast_date);
@@ -167,20 +179,24 @@ function renderForecast(data) {
         rainfallCategory(rainfall);
 
     document.getElementById("location-name").textContent =
-        location.city;
+        location.district;
 
     document.getElementById("location-country").textContent =
-        location.country || "Country unavailable";
+        `${location.state}, ${location.country}`;
 
     updateApiStatus("Offline data loaded", true);
 }
 
-async function loadForecast() {
+async function loadForecast(city = cityInput.value) {
     hideMessage();
+    forecastButton.disabled = true;
+    buttonText.textContent = "Loading...";
     updateApiStatus("Loading local dataset...", false);
 
     try {
-        const response = await fetch(`${API_BASE_URL}/predict`);
+        const url = new URL(`${API_BASE_URL}/predict`, window.location.origin);
+        url.searchParams.set("city", city);
+        const response = await fetch(url);
         const data = await response.json();
 
         if (!response.ok) {
@@ -201,9 +217,10 @@ async function loadForecast() {
         }
 
         renderForecast(data);
-        loadWeeklyForecast();
+        loadWeeklyForecast(city);
+        loadMonthlyAnalytics(city);
         showMessage(
-            "Showing historical rainfall estimates for Ludhiana. These are not live forecasts.",
+            `Showing offline historical rainfall estimates for ${data.location.district} district. These are not live forecasts.`,
             "success"
         );
     } catch (error) {
@@ -217,8 +234,16 @@ async function loadForecast() {
         }
         updateApiStatus("Dataset unavailable", false);
         showMessage(error.message || "Could not load historical rainfall estimates.", "error");
+    } finally {
+        forecastButton.disabled = false;
+        buttonText.textContent = "Show estimates";
     }
 }
+
+searchForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    loadForecast(cityInput.value);
+});
 
 // Update the selected sidebar link when clicked.
 document.querySelectorAll(".nav-link").forEach((link) => {
@@ -235,16 +260,19 @@ document.querySelectorAll(".nav-link").forEach((link) => {
 
 let monthlyRainfallChart = null;
 
-async function loadMonthlyAnalytics() {
+async function loadMonthlyAnalytics(city) {
     const status = document.getElementById("analytics-status");
     const canvas = document.getElementById("monthly-rainfall-chart");
 
     if (!status || !canvas) return;
 
     try {
-        const response = await fetch(
-            `${API_BASE_URL}/analytics/monthly`
+        const url = new URL(
+            `${API_BASE_URL}/analytics/monthly`,
+            window.location.origin
         );
+        url.searchParams.set("city", city);
+        const response = await fetch(url);
 
         if (!response.ok) {
             throw new Error("Could not load historical rainfall analytics.");
@@ -396,7 +424,7 @@ async function loadMonthlyAnalytics() {
         });
 
         status.textContent =
-            `Loaded historical data from ${data.source}. ` +
+            `Loaded historical ${data.location} data from ${data.source}. ` +
             `Wettest month by average daily rainfall: ` +
             `${data.wettest_month_by_average_daily_rainfall || "Unavailable"}.`;
 
@@ -406,12 +434,10 @@ async function loadMonthlyAnalytics() {
     }
 }
 
-loadMonthlyAnalytics();
-
 
 let weeklyRainfallChart = null;
 
-async function loadWeeklyForecast() {
+async function loadWeeklyForecast(city) {
     const status = document.getElementById("weekly-forecast-status");
     const canvas = document.getElementById("weekly-rainfall-chart");
 
@@ -422,7 +448,12 @@ async function loadWeeklyForecast() {
     status.textContent = "Loading seven-day historical estimates...";
 
     try {
-        const response = await fetch(`${API_BASE_URL}/predict/weekly`);
+        const url = new URL(
+            `${API_BASE_URL}/predict/weekly`,
+            window.location.origin
+        );
+        url.searchParams.set("city", city);
+        const response = await fetch(url);
         const data = await response.json();
 
         if (!response.ok) {
@@ -589,7 +620,7 @@ async function loadWeeklyForecast() {
         });
 
         status.textContent =
-            `Historical estimates for ${data.location.city} based on matching calendar dates. ` +
+            `Historical estimates for ${data.location.district} district, using the nearby headquarters grid point. ` +
             "These are not live forecasts.";
 
 
@@ -656,4 +687,4 @@ async function loadWeeklyForecast() {
     }
 }
 
-loadForecast();
+loadForecast(cityInput.value);
