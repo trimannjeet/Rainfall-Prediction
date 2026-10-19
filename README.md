@@ -1,19 +1,16 @@
-# Punjab Rainfall Forecast
+# Ludhiana Historical Rainfall Estimates
 
-A Punjab-focused weather dashboard for current conditions, tomorrow's rainfall
-forecast, and a seven-day outlook. Search or browse 90+ Punjab cities and towns
-from the dashboard.
+A Ludhiana-focused dashboard that serves offline historical rainfall estimates
+and monthly rainfall analysis from data included in the repository.
 
-> **Forecast transparency:** live forecasts are supplied by Open-Meteo. The
-> trained model and notebooks are included for research, but the live dashboard
-> does not use that model to produce its forecasts. Provider data is updated
-> periodically; it is not a live rain-gauge observation.
+> **Estimate transparency:** daily estimates compare the requested calendar
+> date with observed rainfall on that date in the included Ludhiana
+> 2022–2025 dataset. These historical averages are not live forecasts and do
+> not predict actual future weather. The dataset only covers Ludhiana.
 
 ## Features
 
-- Current weather, next-day rainfall, and a seven-day forecast.
-- Searchable, scrollable place selector, plus support for typing another city.
-- Backend validation that rejects locations not identified as Punjab, India.
+- Offline daily and seven-day historical rainfall estimates for Ludhiana.
 - Historical monthly rainfall analytics using the included Ludhiana reference
   dataset.
 - FastAPI serves the dashboard and API from one origin.
@@ -23,7 +20,6 @@ from the dashboard.
 ### Requirements
 
 - Python 3.11 or newer
-- An internet connection for Open-Meteo geocoding and forecast data
 
 ### Windows
 
@@ -66,8 +62,10 @@ service root directory is the directory containing `render.yaml`,
 requirements, start Uvicorn on the port supplied by Render, and check
 `/health` to verify the service is running.
 
-The dashboard, API, and historical analytics dataset are served by the same
-service, so no separate static-site service or database is required.
+The dashboard, API, and historical rainfall dataset are served by the same
+service. Forecast estimates and analytics do not call an external weather API.
+The dashboard uses Chart.js from a CDN for charts, so the charts require an
+internet connection; the forecast data itself is read from the local CSV.
 
 ## Tests
 
@@ -110,21 +108,21 @@ generated files are excluded from Git.
 | Endpoint | Description |
 | --- | --- |
 | `GET /health` | Backend health status |
-| `GET /predict?city=Ludhiana` | Current conditions and tomorrow's forecast |
-| `GET /predict/weekly?city=Amritsar` | Seven-day daily forecast |
+| `GET /predict?city=Ludhiana` | Historical estimate for tomorrow |
+| `GET /predict/weekly?city=Ludhiana` | Seven daily historical estimates |
 | `GET /analytics/monthly` | Historical monthly rainfall statistics |
 
-Forecast endpoints accept a `city` query parameter. The backend verifies the
-resolved country and state with Open-Meteo geocoding before requesting weather
-data. Non-Punjab locations are rejected.
+Daily estimate endpoints currently support Ludhiana only. Other cities return
+HTTP 404 because the included historical dataset does not contain their
+rainfall observations.
 
 ## Data and attribution
 
-Historical analysis uses `data/raw/ludhiana_rainfall_reference_2022_2025.csv`.
-Other raw and processed CSVs support the research notebooks and evaluation
-reports. Forecast and geocoding requests are served by
-[Open-Meteo](https://open-meteo.com/); review its current terms and attribution
-requirements before deploying or redistributing the application.
+Historical estimates and analytics use
+`data/raw/ludhiana_rainfall_reference_2022_2025.csv`. Other raw and processed
+CSVs support the research notebooks and evaluation reports. The saved trained
+model is retained for notebook evaluation; it is not used for these estimates
+because its inputs do not provide a future weather forecast.
 
 The historical dataset and research artifacts are included as project
 materials. Verify the original source's redistribution terms before publishing

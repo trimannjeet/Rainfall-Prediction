@@ -1,214 +1,117 @@
 import unittest
-from datetime import date, timedelta
-from unittest.mock import Mock, patch
+from datetime import date
+from pathlib import Path
+from unittest.mock import patch
 
 from fastapi import HTTPException
 
 import main
 
 
-class PunjabCityLookupTests(unittest.TestCase):
-    @patch("main.requests.get")
-    def test_resolves_city_in_punjab_india(self, get):
-        response = Mock()
-        response.json.return_value = {
-            "results": [
-                {
-                    "name": "Ludhiana",
-                    "country": "India",
-                    "country_code": "IN",
-                    "admin1": "Punjab",
-                    "latitude": 30.9,
-                    "longitude": 75.85,
-                }
-            ]
-        }
-        get.return_value = response
+class OfflineHistoricalEstimateTests(unittest.TestCase):
+    def setUp(self):
+        self.observations = [
+            (date(2022, 7, 1), 0.0),
+            (date(2023, 7, 1), 3.0),
+            (date(2024, 7, 1), 6.0),
+            (date(2022, 7, 2), 50.0),
+        ]
 
-        location = main.find_punjab_city("Ludhiana")
+    def test_tomorrow_estimate_uses_matching_calendar_days(self):
+        with (
+            patch("main.india_today", return_value=date(2026, 6, 30)),
+            patch(
+                "main.load_historical_rainfall",
+                return_value=self.observations,
+            ),
+        ):
+            result = main.predict_tomorrow(city="Ludhiana")
 
-        self.assertEqual(location["name"], "Ludhiana")
+        self.assertEqual(result["status"], "success")
+        self.assertEqual(result["source"], main.DATASET_PATH.name)
+        self.assertEqual(result["forecast_date"], "2026-07-01")
+        self.assertEqual(result["forecast"]["rainfall_mm"], 3.0)
         self.assertEqual(
-            get.call_args.kwargs["params"]["countryCode"],
-            "IN",
+            result["forecast"]["precipitation_probability_percent"],
+            67,
+        )
+        self.assertEqual(result["forecast"]["sample_count"], 3)
+        self.assertIsNone(result["current_conditions"]["temperature_c"])
+        self.assertIn("not a live forecast", result["note"])
+
+    def test_weekly_endpoint_returns_next_seven_offline_estimates(self):
+        with (
+            patch("main.india_today", return_value=date(2026, 6, 30)),
+            patch(
+                "main.load_historical_rainfall",
+                return_value=self.observations,
+            ),
+        ):
+            result = main.predict_weekly(city="Ludhiana")
+
+        forecasts = result["daily_forecasts"]
+        self.assertEqual(len(forecasts), 7)
+        self.assertEqual(forecasts[0]["date"], "2026-07-01")
+        self.assertEqual(forecasts[-1]["date"], "2026-07-07")
+        self.assertEqual(
+            forecasts[0]["estimate_method"],
+            "matching calendar day",
+        )
+        self.assertTrue(
+            all(
+                item["estimate_method"] == "calendar month"
+                for item in forecasts[2:]
+            )
         )
 
-    @patch("main.requests.get")
-    def test_rejects_city_outside_punjab(self, get):
-        response = Mock()
-        response.json.return_value = {
-            "results": [
-                {
-                    "name": "Delhi",
-                    "country_code": "IN",
-                    "admin1": "Delhi",
-                }
-            ]
-        }
-        get.return_value = response
+    def test_february_29_uses_month_history_when_no_matching_day(self):
+        estimate = main.estimate_rainfall(
+            date(2024, 2, 29),
+            [
+                (date(2022, 2, 1), 2.0),
+                (date(2023, 2, 2), 4.0),
+                (date(2022, 3, 1), 100.0),
+            ],
+        )
 
+        self.assertEqual(estimate["rainfall_mm"], 3.0)
+        self.assertEqual(estimate["sample_count"], 2)
+        self.assertEqual(estimate["estimate_method"], "calendar month")
+
+    def test_rejects_locations_without_historical_coverage(self):
         with self.assertRaises(HTTPException) as raised:
-            main.find_punjab_city("Delhi")
+            main.predict_tomorrow(city="Amritsar")
 
         self.assertEqual(raised.exception.status_code, 404)
+        self.assertIn("Ludhiana only", raised.exception.detail)
 
-    @patch("main.requests.get")
-    def test_rejects_malformed_geocoder_location(self, get):
-        response = Mock()
-        response.json.return_value = {
-            "results": [
-                {
-                    "name": "Unknown",
-                    "country_code": None,
-                    "admin1": None,
-                }
-            ]
-        }
-        get.return_value = response
+    def test_loads_included_historical_dataset(self):
+        observations = main.load_historical_rainfall()
 
-        with self.assertRaises(HTTPException) as raised:
-            main.find_punjab_city("Unknown")
+        self.assertTrue(observations)
+        self.assertIsInstance(observations[0][0], date)
+        self.assertGreaterEqual(observations[0][1], 0)
 
-        self.assertEqual(raised.exception.status_code, 404)
+    def test_monthly_analytics_uses_local_dataset(self):
+        result = main.monthly_rainfall_analytics()
 
+        self.assertEqual(result["status"], "success")
+        self.assertEqual(len(result["monthly_statistics"]), 12)
+        self.assertIn("not a live forecast", result["description"])
 
-class LiveForecastValidationTests(unittest.TestCase):
-    def setUp(self):
-        main.CITY_CACHE.clear()
-        main.FORECAST_CACHE.clear()
-        main.PROVIDER_RATE_LIMITED_UNTIL = 0
-
-    @patch("main.requests.get")
-    def test_rate_limit_cooldown_prevents_repeated_provider_requests(self, get):
-        response = Mock()
-        response.status_code = 429
-        response.headers = {"Retry-After": "60"}
-        get.return_value = response
-
-        with self.assertRaises(HTTPException) as first:
-            main.fetch_with_retry(main.WEATHER_URL)
-
-        with self.assertRaises(HTTPException) as second:
-            main.fetch_with_retry(main.GEOCODING_URL)
-
-        self.assertEqual(first.exception.status_code, 429)
-        self.assertEqual(first.exception.headers["Retry-After"], "60")
-        self.assertEqual(second.exception.status_code, 429)
-        self.assertEqual(get.call_count, 1)
-
-    def test_home_serves_the_dashboard(self):
+    def test_home_serves_dashboard(self):
         response = main.home()
 
         self.assertEqual(response.path, main.FRONTEND_PATH / "index.html")
+        self.assertTrue(Path(response.path).is_file())
 
-    @patch("main.requests.get")
-    @patch("main.find_punjab_city")
-    def test_tomorrow_forecast_returns_provider_data(
-        self,
-        find_city,
-        get,
-    ):
-        today = date.today()
-        tomorrow = (today + timedelta(days=1)).isoformat()
-        find_city.return_value = {
-            "name": "Ludhiana",
-            "country": "India",
-            "latitude": 30.9,
-            "longitude": 75.85,
-        }
-        response = Mock()
-        response.json.return_value = {
-            "timezone": "Asia/Kolkata",
-            "current": {
-                "time": f"{today.isoformat()}T12:00",
-                "temperature_2m": 25,
-                "relative_humidity_2m": 50,
-                "apparent_temperature": 26,
-                "precipitation": 0,
-                "rain": 0,
-                "showers": 0,
-                "weather_code": 1,
-                "wind_speed_10m": 5,
-            },
-            "daily": {
-                "time": [today.isoformat(), tomorrow],
-                "precipitation_sum": [0, 2.5],
-                "precipitation_probability_max": [0, 60],
-                "temperature_2m_max": [25, 24],
-                "temperature_2m_min": [15, 14],
-                "weather_code": [1, 61],
-            },
-        }
-        get.return_value = response
+    def test_health_reports_offline_mode(self):
+        result = main.health_check()
 
-        result = main.predict_tomorrow(city="Ludhiana")
-
-        self.assertEqual(result["forecast_date"], tomorrow)
-        self.assertEqual(result["forecast"]["rainfall_mm"], 2.5)
-        self.assertEqual(result["location"]["city"], "Ludhiana")
-
-    @patch("main.requests.get")
-    @patch("main.find_punjab_city")
-    def test_tomorrow_forecast_rejects_incomplete_provider_data(
-        self,
-        find_city,
-        get,
-    ):
-        find_city.return_value = {
-            "name": "Ludhiana",
-            "country": "India",
-            "latitude": 30.9,
-            "longitude": 75.85,
-        }
-        response = Mock()
-        response.json.return_value = {
-            "current": {
-                "time": "2026-10-11T12:00",
-                "temperature_2m": 25,
-                "relative_humidity_2m": 50,
-                "apparent_temperature": 26,
-                "precipitation": 0,
-                "rain": 0,
-                "showers": 0,
-                "weather_code": 1,
-                "wind_speed_10m": 5,
-            },
-            "daily": {
-                "time": ["2026-10-11", "2026-10-12"],
-                "precipitation_sum": [0, 1],
-                "precipitation_probability_max": [0],
-                "temperature_2m_max": [25, 26],
-                "temperature_2m_min": [15, 16],
-                "weather_code": [1, 61],
-            },
-        }
-        get.return_value = response
-
-        with self.assertRaises(HTTPException) as raised:
-            main.predict_tomorrow(city="Ludhiana")
-
-        self.assertEqual(raised.exception.status_code, 502)
-
-    @patch("main.requests.get")
-    @patch("main.find_punjab_city")
-    def test_weekly_forecast_rejects_unexpected_provider_payload(
-        self,
-        find_city,
-        get,
-    ):
-        find_city.return_value = {
-            "name": "Ludhiana",
-            "latitude": 30.9,
-            "longitude": 75.85,
-        }
-        response = Mock()
-        response.json.return_value = []
-        get.return_value = response
-
-        with self.assertRaises(HTTPException) as raised:
-            main.predict_weekly(city="Ludhiana")
-
-        self.assertEqual(raised.exception.status_code, 502)
+        self.assertEqual(
+            result["forecast_mode"],
+            "offline_historical_estimates",
+        )
 
 
 if __name__ == "__main__":

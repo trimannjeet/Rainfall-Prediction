@@ -1,221 +1,6 @@
 
 const API_BASE_URL = "";
-
-const searchForm = document.getElementById("search-form");
-const cityInput = document.getElementById("city-input");
-const forecastButton = document.getElementById("forecast-button");
-const buttonText = document.getElementById("button-text");
 const messageBox = document.getElementById("message");
-const cityOptions = document.getElementById("city-options");
-let activeCityOption = -1;
-
-const punjabCities = [
-    "Abohar",
-    "Adampur",
-    "Ahmedgarh",
-    "Ajnala",
-    "Amloh",
-    "Amritsar",
-    "Badhni Kalan",
-    "Bagha Purana",
-    "Balachaur",
-    "Banga",
-    "Banur",
-    "Barnala",
-    "Batala",
-    "Bathinda",
-    "Begowal",
-    "Behrampur",
-    "Bhagta",
-    "Bhawanigarh",
-    "Bhikhi",
-    "Bhogpur",
-    "Bilga",
-    "Budhlada",
-    "Chamkaur Sahib",
-    "Dasuya",
-    "Dera Baba Nanak",
-    "Dhuri",
-    "Dinanagar",
-    "Dirba",
-    "Faridkot",
-    "Fatehgarh Churian",
-    "Fazilka",
-    "Ferozepur",
-    "Garhshankar",
-    "Ghanaur",
-    "Goniana Mandi",
-    "Gurdaspur",
-    "Guru Har Sahai",
-    "Hajipur",
-    "Hariana",
-    "Hoshiarpur",
-    "Jagraon",
-    "Jalandhar",
-    "Jandiala",
-    "Kapurthala",
-    "Kartarpur",
-    "Khamanon",
-    "Khanna",
-    "Kharar",
-    "Khem Karan",
-    "Kotkapura",
-    "Ludhiana",
-    "Machhiwara",
-    "Majitha",
-    "Maler Kotla",
-    "Malout",
-    "Mansa",
-    "Moga",
-    "Mohali",
-    "Moonak",
-    "Morinda",
-    "Mukerian",
-    "Muktsar",
-    "Nabha",
-    "Nakodar",
-    "Nangal",
-    "Nawanshahr",
-    "Nurmahal",
-    "Pathankot",
-    "Patiala",
-    "Patti",
-    "Phagwara",
-    "Phillaur",
-    "Qadian",
-    "Rahon",
-    "Raikot",
-    "Rajpura",
-    "Rampura Phul",
-    "Rupnagar",
-    "Samana",
-    "Samrala",
-    "Sanaur",
-    "Sangrur",
-    "Sardulgarh",
-    "Shahkot",
-    "Sirhind",
-    "Sultanpur Lodhi",
-    "Sunam",
-    "Talwandi Sabo",
-    "Tanda",
-    "Tarn Taran",
-    "Zira",
-    "Zirakpur",
-];
-
-function closeCityOptions() {
-    cityOptions.hidden = true;
-    cityInput.setAttribute("aria-expanded", "false");
-    cityInput.removeAttribute("aria-activedescendant");
-    activeCityOption = -1;
-}
-
-function renderCityOptions(search = "") {
-    const query = search.trim().toLocaleLowerCase();
-    const matches = punjabCities.filter((city) =>
-        city.toLocaleLowerCase().includes(query)
-    );
-
-    cityOptions.replaceChildren();
-    activeCityOption = -1;
-    cityInput.removeAttribute("aria-activedescendant");
-
-    if (!matches.length) {
-        const emptyState = document.createElement("p");
-        emptyState.className = "city-options-empty";
-        emptyState.textContent = "No matching city. You can still type a Punjab place name.";
-        cityOptions.append(emptyState);
-    } else {
-        matches.forEach((city, index) => {
-            const option = document.createElement("button");
-            option.type = "button";
-            option.className = "city-option";
-            option.id = `city-option-${index}`;
-            option.setAttribute("role", "option");
-            option.setAttribute("aria-selected", "false");
-            option.dataset.city = city;
-
-            const cityName = document.createElement("span");
-            cityName.className = "city-option-name";
-            cityName.textContent = city;
-
-            const locationLabel = document.createElement("span");
-            locationLabel.className = "city-option-detail";
-            locationLabel.textContent = "Punjab";
-
-            option.append(cityName, locationLabel);
-            option.addEventListener("click", () => {
-                cityInput.value = city;
-                closeCityOptions();
-                cityInput.focus();
-            });
-            cityOptions.append(option);
-        });
-    }
-
-    cityOptions.hidden = false;
-    cityInput.setAttribute("aria-expanded", "true");
-}
-
-cityInput.addEventListener("focus", () => renderCityOptions());
-cityInput.addEventListener("input", () => renderCityOptions(cityInput.value));
-cityInput.addEventListener("keydown", (event) => {
-    if (
-        (event.key === "ArrowDown" || event.key === "ArrowUp")
-        && cityOptions.hidden
-    ) {
-        renderCityOptions(cityInput.value);
-    }
-    const options = [...cityOptions.querySelectorAll(".city-option")];
-
-    if (event.key === "ArrowDown" && options.length) {
-        event.preventDefault();
-        if (cityOptions.hidden) renderCityOptions(cityInput.value);
-        activeCityOption = Math.min(activeCityOption + 1, options.length - 1);
-    } else if (event.key === "ArrowUp" && options.length) {
-        event.preventDefault();
-        activeCityOption = Math.max(activeCityOption - 1, 0);
-    } else if (
-        event.key === "Enter"
-        && !cityOptions.hidden
-        && activeCityOption >= 0
-        && options[activeCityOption]
-    ) {
-        event.preventDefault();
-        cityInput.value = options[activeCityOption].dataset.city;
-        closeCityOptions();
-    } else if (event.key === "Escape") {
-        closeCityOptions();
-        return;
-    } else {
-        return;
-    }
-
-    options.forEach((option, index) => {
-        option.setAttribute(
-            "aria-selected",
-            String(index === activeCityOption)
-        );
-    });
-    if (options[activeCityOption]) {
-        cityInput.setAttribute(
-            "aria-activedescendant",
-            options[activeCityOption].id
-        );
-        options[activeCityOption].scrollIntoView({ block: "nearest" });
-    } else {
-        cityInput.removeAttribute("aria-activedescendant");
-    }
-});
-
-cityInput.addEventListener("blur", (event) => {
-    if (!cityOptions.contains(event.relatedTarget)) closeCityOptions();
-});
-
-document.addEventListener("pointerdown", (event) => {
-    if (!event.target.closest(".city-picker")) closeCityOptions();
-});
 
 function showMessage(message, type = "success") {
     messageBox.textContent = message;
@@ -265,38 +50,7 @@ function rainfallCategory(rainfall) {
 }
 
 function weatherIcon(code) {
-    const icons = {
-        0: "☀️",
-        1: "🌤️",
-        2: "⛅",
-        3: "☁️",
-        45: "🌫️",
-        48: "🌫️",
-        51: "🌦️",
-        53: "🌦️",
-        55: "🌧️",
-        56: "🌧️",
-        57: "🌧️",
-        61: "🌦️",
-        63: "🌧️",
-        65: "🌧️",
-        66: "🌧️",
-        67: "🌧️",
-        71: "🌨️",
-        73: "🌨️",
-        75: "❄️",
-        77: "🌨️",
-        80: "🌦️",
-        81: "🌧️",
-        82: "⛈️",
-        85: "🌨️",
-        86: "❄️",
-        95: "⛈️",
-        96: "⛈️",
-        99: "⛈️",
-    };
-
-    return icons[code] || "🌤️";
+    return code == null ? "📊" : "🌦️";
 }
 
 function updateApiStatus(text, healthy = false) {
@@ -328,14 +82,13 @@ function renderForecast(data) {
     document.getElementById("current-weather-summary").textContent =
         `${current.summary} · ${location.city}`;
     document.getElementById("current-weather-updated").textContent =
-        `Latest provider update: ${current.time.replace("T", " ")} (${location.timezone || "local time"})`;
+        "Current atmospheric conditions are not included in the historical dataset.";
 
-    // Update the new live forecast card
     const liveRainfall = document.getElementById("live-rainfall");
     const liveSummary = document.getElementById("live-forecast-summary");
     const liveProbability = document.getElementById("live-rain-probability");
-    const liveMaxTemp = document.getElementById("live-temp-max");
-    const liveMinTemp = document.getElementById("live-temp-min");
+    const liveSampleCount = document.getElementById("live-sample-count");
+    const liveEstimateMethod = document.getElementById("live-estimate-method");
     const liveDate = document.getElementById("live-forecast-date");
     const liveIcon = document.querySelector(".forecast-weather-icon");
 
@@ -346,7 +99,7 @@ function renderForecast(data) {
 
     if (liveSummary) {
         liveSummary.textContent =
-            forecast.summary || "Forecast available";
+            forecast.summary || "Historical estimate available";
     }
 
     if (liveProbability) {
@@ -356,19 +109,17 @@ function renderForecast(data) {
                 : `${forecast.precipitation_probability_percent}%`;
     }
 
-    if (liveMaxTemp) {
-        liveMaxTemp.textContent =
-            `${formatNumber(forecast.temperature_max_c)}°C`;
+    if (liveSampleCount) {
+        liveSampleCount.textContent = forecast.sample_count;
     }
 
-    if (liveMinTemp) {
-        liveMinTemp.textContent =
-            `${formatNumber(forecast.temperature_min_c)}°C`;
+    if (liveEstimateMethod) {
+        liveEstimateMethod.textContent = forecast.estimate_method;
     }
 
     if (liveDate) {
         liveDate.textContent =
-            `Forecast date: ${formatDate(data.forecast_date)} · ${location.city}`;
+            `Estimate date: ${formatDate(data.forecast_date)} · ${location.city}`;
     }
 
     if (liveIcon) {
@@ -377,7 +128,7 @@ function renderForecast(data) {
 
 
     document.getElementById("forecast-location").textContent =
-        `${location.city}'s forecast`;
+        `${location.city} historical estimate`;
 
     document.getElementById("forecast-date").textContent =
         formatDate(data.forecast_date);
@@ -386,7 +137,7 @@ function renderForecast(data) {
         formatNumber(forecast.rainfall_mm);
 
     document.getElementById("weather-summary").textContent =
-        forecast.summary || "Forecast available";
+        "Historical rainfall estimate";
 
     document.getElementById("weather-icon").textContent =
         weatherIcon(forecast.weather_code);
@@ -395,8 +146,8 @@ function renderForecast(data) {
 
     document.getElementById("rainfall-description").textContent =
         rainfall === null || rainfall === undefined
-            ? "The provider did not return a rainfall amount."
-            : `${formatNumber(rainfall)} mm of total rainfall is forecast for this day.`;
+            ? "No matching historical rainfall data is available."
+            : `${formatNumber(rainfall)} mm is the historical average for a matching calendar date; this is not a live forecast.`;
 
     const probability = forecast.precipitation_probability_percent;
 
@@ -412,12 +163,6 @@ function renderForecast(data) {
     document.getElementById("probability-fill").style.width =
         `${safeProbability}%`;
 
-    document.getElementById("max-temperature").textContent =
-        `${formatNumber(forecast.temperature_max_c)}°C`;
-
-    document.getElementById("min-temperature").textContent =
-        `${formatNumber(forecast.temperature_min_c)}°C`;
-
     document.getElementById("rain-category").textContent =
         rainfallCategory(rainfall);
 
@@ -427,30 +172,16 @@ function renderForecast(data) {
     document.getElementById("location-country").textContent =
         location.country || "Country unavailable";
 
-    updateApiStatus("Connected", true);
+    updateApiStatus("Offline data loaded", true);
 }
 
-async function loadForecast(city, showSuccess = true) {
+async function loadForecast() {
     hideMessage();
-
-    forecastButton.disabled = true;
-    buttonText.textContent = "Loading...";
-
-    updateApiStatus("Fetching forecast...", false);
+    updateApiStatus("Loading local dataset...", false);
 
     try {
-        const url = new URL(`${API_BASE_URL}/predict`, window.location.origin);
-        url.searchParams.set("city", city);
-
-        const response = await fetch(url);
-
-        let data;
-
-        try {
-            data = await response.json();
-        } catch {
-            throw new Error("The backend returned an unreadable response.");
-        }
+        const response = await fetch(`${API_BASE_URL}/predict`);
+        const data = await response.json();
 
         if (!response.ok) {
             const detail = typeof data.detail === "string"
@@ -470,55 +201,24 @@ async function loadForecast(city, showSuccess = true) {
         }
 
         renderForecast(data);
-        loadWeeklyForecast(city);
-
-        if (showSuccess) {
-            showMessage(
-                `Current conditions and forecast loaded for ${data.location.city}, Punjab.`,
-                "success"
-            );
-        }
+        loadWeeklyForecast();
+        showMessage(
+            "Showing historical rainfall estimates for Ludhiana. These are not live forecasts.",
+            "success"
+        );
     } catch (error) {
-        let errorMessage = error.message || "An unexpected error occurred.";
-
         if (error instanceof TypeError) {
-            updateApiStatus("Connection issue", false);
-            errorMessage =
-                `Cannot connect to the backend. Start the app and open ${window.location.origin}.`;
-        } else {
-            updateApiStatus("Connected", true);
+            updateApiStatus("App connection issue", false);
+            showMessage(
+                `Cannot connect to the app at ${window.location.origin}.`,
+                "error"
+            );
+            return;
         }
-
-        showMessage(errorMessage, "error");
-    } finally {
-        forecastButton.disabled = false;
-        buttonText.textContent = "Get forecast";
+        updateApiStatus("Dataset unavailable", false);
+        showMessage(error.message || "Could not load historical rainfall estimates.", "error");
     }
 }
-
-searchForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-
-    const city = cityInput.value.trim();
-
-    if (city.length < 2) {
-        showMessage("Please enter a city name with at least two characters.", "error");
-        return;
-    }
-
-    loadForecast(city);
-});
-
-// Load the default city when the page opens.
-loadForecast(cityInput.value.trim());
-
-// Refresh provider conditions and forecasts hourly without a key.
-setInterval(() => {
-    const city = cityInput.value.trim();
-    if (city.length >= 2) {
-        loadForecast(city, false);
-    }
-}, 60 * 60 * 1000);
 
 // Update the selected sidebar link when clicked.
 document.querySelectorAll(".nav-link").forEach((link) => {
@@ -711,7 +411,7 @@ loadMonthlyAnalytics();
 
 let weeklyRainfallChart = null;
 
-async function loadWeeklyForecast(city) {
+async function loadWeeklyForecast() {
     const status = document.getElementById("weekly-forecast-status");
     const canvas = document.getElementById("weekly-rainfall-chart");
 
@@ -719,21 +419,10 @@ async function loadWeeklyForecast(city) {
         return;
     }
 
-    if (!city || city.trim().length < 2) {
-        status.textContent = "Please enter a valid city name.";
-        return;
-    }
-
-    status.textContent = `Loading 7-day forecast for ${city}...`;
+    status.textContent = "Loading seven-day historical estimates...";
 
     try {
-        const url = new URL(
-            `${API_BASE_URL}/predict/weekly`,
-            window.location.origin
-        );
-        url.searchParams.set("city", city.trim());
-
-        const response = await fetch(url);
+        const response = await fetch(`${API_BASE_URL}/predict/weekly`);
         const data = await response.json();
 
         if (!response.ok) {
@@ -790,7 +479,7 @@ async function loadWeeklyForecast(city) {
                 datasets: [
                     {
                         type: "bar",
-                        label: "Expected rainfall (mm)",
+                        label: "Historical average rainfall (mm)",
                         data: rainfall,
                         yAxisID: "yRain",
                         backgroundColor: "rgba(91, 156, 255, 0.75)",
@@ -801,7 +490,7 @@ async function loadWeeklyForecast(city) {
                     },
                     {
                         type: "line",
-                        label: "Rain probability (%)",
+                        label: "Historical rainy-day frequency (%)",
                         data: probability,
                         yAxisID: "yProbability",
                         borderColor: "#39d5c8",
@@ -836,7 +525,7 @@ async function loadWeeklyForecast(city) {
                         callbacks: {
                             label: function (context) {
                                 if (context.dataset.yAxisID === "yProbability") {
-                                    return `Rain probability: ${context.parsed.y ?? "N/A"}%`;
+                                    return `Historical rainy-day frequency: ${context.parsed.y ?? "N/A"}%`;
                                 }
 
                                 return `Rainfall: ${context.parsed.y ?? "N/A"} mm`;
@@ -880,7 +569,7 @@ async function loadWeeklyForecast(city) {
 
                         title: {
                             display: true,
-                            text: "Rain probability (%)",
+                            text: "Rainy-day frequency in historical samples (%)",
                             color: "#c5d0e0"
                         },
 
@@ -900,8 +589,8 @@ async function loadWeeklyForecast(city) {
         });
 
         status.textContent =
-            `Showing the 7-day forecast for ${data.location.city}. ` +
-            "Rainfall is measured in millimetres (mm).";
+            `Historical estimates for ${data.location.city} based on matching calendar dates. ` +
+            "These are not live forecasts.";
 
 
         const cardsContainer = document.getElementById("weekly-forecast-cards");
@@ -927,24 +616,12 @@ async function loadWeeklyForecast(city) {
                     ? "N/A"
                     : `${item.precipitation_probability_percent}%`;
 
-                const maxTemp = item.temperature_max_c == null
-                    ? "N/A"
-                    : `${item.temperature_max_c}°C`;
-
-                const minTemp = item.temperature_min_c == null
-                    ? "N/A"
-                    : `${item.temperature_min_c}°C`;
-
-                const summary = item.summary || "Forecast unavailable";
-
-                const icon = Number(item.rainfall_mm) > 0
-                    ? "🌧️"
-                    : "🌤️";
+                const summary = item.summary || "Historical estimate";
 
                 return `
             <article class="weekly-card">
                 <div class="weekly-card-top">
-                    <span class="weekly-card-icon">${icon}</span>
+                    <span class="weekly-card-icon">📊</span>
                     <div>
                         <h3>${day}</h3>
                         <p>${dateLabel}</p>
@@ -954,18 +631,18 @@ async function loadWeeklyForecast(city) {
                 <p class="weekly-card-summary">${summary}</p>
 
                 <div class="weekly-card-rain">
-                    <span>Expected rainfall</span>
+                    <span>Historical average rainfall</span>
                     <strong>${rainfall}</strong>
                 </div>
 
                 <div class="weekly-card-detail">
-                    <span>☔ Rain chance</span>
+                    <span>☔ Historical rainy-day frequency</span>
                     <strong>${probability}</strong>
                 </div>
 
                 <div class="weekly-card-detail">
-                    <span>🌡️ Temperature</span>
-                    <strong>${maxTemp} / ${minTemp}</strong>
+                    <span>Historical samples</span>
+                    <strong>${item.sample_count}</strong>
                 </div>
             </article>
         `;
@@ -978,3 +655,5 @@ async function loadWeeklyForecast(city) {
         status.textContent = error.message;
     }
 }
+
+loadForecast();
