@@ -567,7 +567,7 @@ async function loadMonthlyAnalytics() {
 
         const months = data.monthly_statistics;
 
-        
+
         // Update the wettest month card
         document.getElementById("wettest-month").textContent =
             data.wettest_month_by_average_daily_rainfall || "Unavailable";
@@ -834,7 +834,7 @@ async function loadWeeklyForecast(city) {
 
                     tooltip: {
                         callbacks: {
-                            label: function(context) {
+                            label: function (context) {
                                 if (context.dataset.yAxisID === "yProbability") {
                                     return `Rain probability: ${context.parsed.y ?? "N/A"}%`;
                                 }
@@ -886,7 +886,7 @@ async function loadWeeklyForecast(city) {
 
                         ticks: {
                             color: "#c5d0e0",
-                            callback: function(value) {
+                            callback: function (value) {
                                 return `${value}%`;
                             }
                         },
@@ -903,45 +903,45 @@ async function loadWeeklyForecast(city) {
             `Showing the 7-day forecast for ${data.location.city}. ` +
             "Rainfall is measured in millimetres (mm).";
 
-            
-const cardsContainer = document.getElementById("weekly-forecast-cards");
 
-if (cardsContainer) {
-    cardsContainer.innerHTML = forecasts.map(item => {
-        const forecastDate = new Date(`${item.date}T12:00:00`);
+        const cardsContainer = document.getElementById("weekly-forecast-cards");
 
-        const day = forecastDate.toLocaleDateString("en-IN", {
-            weekday: "short"
-        });
+        if (cardsContainer) {
+            cardsContainer.innerHTML = forecasts.map(item => {
+                const forecastDate = new Date(`${item.date}T12:00:00`);
 
-        const dateLabel = forecastDate.toLocaleDateString("en-IN", {
-            day: "numeric",
-            month: "short"
-        });
+                const day = forecastDate.toLocaleDateString("en-IN", {
+                    weekday: "short"
+                });
 
-        const rainfall = item.rainfall_mm == null
-            ? "N/A"
-            : `${Number(item.rainfall_mm).toFixed(1)} mm`;
+                const dateLabel = forecastDate.toLocaleDateString("en-IN", {
+                    day: "numeric",
+                    month: "short"
+                });
 
-        const probability = item.precipitation_probability_percent == null
-            ? "N/A"
-            : `${item.precipitation_probability_percent}%`;
+                const rainfall = item.rainfall_mm == null
+                    ? "N/A"
+                    : `${Number(item.rainfall_mm).toFixed(1)} mm`;
 
-        const maxTemp = item.temperature_max_c == null
-            ? "N/A"
-            : `${item.temperature_max_c}°C`;
+                const probability = item.precipitation_probability_percent == null
+                    ? "N/A"
+                    : `${item.precipitation_probability_percent}%`;
 
-        const minTemp = item.temperature_min_c == null
-            ? "N/A"
-            : `${item.temperature_min_c}°C`;
+                const maxTemp = item.temperature_max_c == null
+                    ? "N/A"
+                    : `${item.temperature_max_c}°C`;
 
-        const summary = item.summary || "Forecast unavailable";
+                const minTemp = item.temperature_min_c == null
+                    ? "N/A"
+                    : `${item.temperature_min_c}°C`;
 
-        const icon = Number(item.rainfall_mm) > 0
-            ? "🌧️"
-            : "🌤️";
+                const summary = item.summary || "Forecast unavailable";
 
-        return `
+                const icon = Number(item.rainfall_mm) > 0
+                    ? "🌧️"
+                    : "🌤️";
+
+                return `
             <article class="weekly-card">
                 <div class="weekly-card-top">
                     <span class="weekly-card-icon">${icon}</span>
@@ -969,8 +969,8 @@ if (cardsContainer) {
                 </div>
             </article>
         `;
-    }).join("");
-}
+            }).join("");
+        }
 
 
     } catch (error) {

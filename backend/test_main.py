@@ -73,6 +73,10 @@ class PunjabCityLookupTests(unittest.TestCase):
 
 
 class LiveForecastValidationTests(unittest.TestCase):
+    def setUp(self):
+        main.CITY_CACHE.clear()
+        main.FORECAST_CACHE.clear()
+
     def test_home_serves_the_dashboard(self):
         response = main.home()
 

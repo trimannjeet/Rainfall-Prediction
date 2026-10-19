@@ -57,6 +57,18 @@ Open <http://127.0.0.1:8001>. Interactive API documentation is at
 <http://127.0.0.1:8001/docs>, and the health check is at
 <http://127.0.0.1:8001/health>.
 
+## Deploy to Render
+
+The repository includes a `render.yaml` Blueprint for the FastAPI web service.
+In Render, create a new Blueprint and connect this repository. Make sure the
+service root directory is the directory containing `render.yaml`,
+`requirements.txt`, and `backend/`. Render will install the application
+requirements, start Uvicorn on the port supplied by Render, and check
+`/health` to verify the service is running.
+
+The dashboard, API, and historical analytics dataset are served by the same
+service, so no separate static-site service or database is required.
+
 ## Tests
 
 Run the backend regression tests from the repository root:
