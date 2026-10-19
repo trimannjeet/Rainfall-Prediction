@@ -71,22 +71,12 @@ function updateApiStatus(text, healthy = false) {
 function renderForecast(data) {
     const forecast = data.forecast;
     const location = data.location;
-    const current = data.current_conditions;
-
-    document.getElementById("current-temperature").textContent =
-        `${formatNumber(current.temperature_c)}°C`;
-    document.getElementById("current-precipitation").textContent =
-        `${formatNumber(current.precipitation_mm)} mm`;
-    document.getElementById("current-humidity").textContent =
-        `${formatNumber(current.relative_humidity_percent, 0)}%`;
-    document.getElementById("current-wind").textContent =
-        `${formatNumber(current.wind_speed_kmh)} km/h`;
-    document.getElementById("current-feels-like").textContent =
-        `Feels like ${formatNumber(current.feels_like_c)}°C`;
-    document.getElementById("current-weather-summary").textContent =
-        `${current.summary} · ${location.district} district`;
+    document.getElementById("estimate-sample-count").textContent =
+        forecast.sample_count;
+    document.getElementById("estimate-method").textContent =
+        forecast.estimate_method;
     document.getElementById("current-weather-updated").textContent =
-        "Current atmospheric conditions are not included in the historical dataset.";
+        `Rainfall summaries for the ERA5 grid point near ${location.city}, ${location.district} district.`;
 
     const liveRainfall = document.getElementById("live-rainfall");
     const liveSummary = document.getElementById("live-forecast-summary");
@@ -287,13 +277,36 @@ async function loadMonthlyAnalytics(city) {
             throw new Error("The analytics response has an unexpected format.");
         }
 
-        if (typeof Chart === "undefined") {
-            throw new Error(
-                "Chart.js did not load. Check your internet connection."
-            );
-        }
-
         const months = data.monthly_statistics;
+        const totalRainfall = months.reduce(
+            (sum, item) => sum + Number(item.total_rainfall_mm || 0),
+            0
+        );
+        const totalDays = months.reduce(
+            (sum, item) => sum + Number(item.days_with_data || 0),
+            0
+        );
+        const rainyDays = months.reduce(
+            (sum, item) => sum + Number(item.rainy_days || 0),
+            0
+        );
+        const annualRainfall = totalRainfall / 4;
+
+        document.getElementById("historical-annual-rainfall").textContent =
+            `${formatNumber(annualRainfall)} mm`;
+        document.getElementById("historical-daily-rainfall").textContent =
+            `${formatNumber(totalRainfall / totalDays)} mm`;
+        document.getElementById("historical-rainy-frequency").textContent =
+            `${formatNumber(rainyDays / totalDays * 100)}%`;
+        document.getElementById("historical-wettest-month").textContent =
+            data.wettest_month_by_average_daily_rainfall || "Unavailable";
+        const wettestMonth = months.find(
+            (item) => item.month === data.wettest_month_by_average_daily_rainfall
+        );
+        document.getElementById("historical-wettest-month-rainfall").textContent =
+            wettestMonth
+                ? `${formatNumber(wettestMonth.average_daily_rainfall_mm)} mm/day average`
+                : "No historical monthly data";
 
 
         // Update the wettest month card
@@ -327,6 +340,11 @@ async function loadMonthlyAnalytics(city) {
                 `${averageRainfall.toFixed(2)} mm/day`;
         }
 
+        if (typeof Chart === "undefined") {
+            throw new Error(
+                "Historical summary loaded, but Chart.js did not load. Check your internet connection."
+            );
+        }
 
         const labels = months.map((item) => item.month);
         const values = months.map((item) =>

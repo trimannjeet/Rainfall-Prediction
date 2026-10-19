@@ -12,7 +12,7 @@
         content="Explore offline historical rainfall estimates for all 23 Punjab districts."
     >
 
-    <link rel="stylesheet" href="style.css?v=7">
+    <link rel="stylesheet" href="style.css?v=8">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
@@ -36,7 +36,7 @@
                     <span>☁</span> Forecast
                 </a>
                 <a href="#details" class="nav-link">
-                    <span>◷</span> Weather details
+                    <span>◷</span> Estimate details
                 </a>
             </nav>
 
@@ -113,10 +113,10 @@
             <section id="current-conditions" class="details-section">
                 <div class="section-heading compact-heading">
                     <div>
-                        <p class="eyebrow">NOT INCLUDED IN LOCAL DATA</p>
-                        <h2>Current weather unavailable</h2>
+                        <p class="eyebrow">2022–2025 HISTORICAL DATA</p>
+                        <h2>Historical rainfall context</h2>
                         <p id="current-weather-updated" class="muted">
-                            Current atmospheric conditions are not included in the historical dataset.
+                            Rainfall summaries for the selected district's nearby ERA5 grid point.
                         </p>
                     </div>
                     <span class="source-chip">Offline dataset</span>
@@ -125,42 +125,42 @@
                 <div class="metrics-grid">
                     <article class="metric-card">
                         <div class="metric-top">
-                            <span class="metric-icon">🌡️</span>
-                            <span class="metric-label">Temperature</span>
+                            <span class="metric-icon">🌧️</span>
+                            <span class="metric-label">Average annual rainfall</span>
                         </div>
-                        <p class="metric-value" id="current-temperature">--°C</p>
-                        <p class="metric-caption" id="current-weather-summary">Not available offline</p>
-                    </article>
-
-                    <article class="metric-card">
-                        <div class="metric-top">
-                            <span class="metric-icon">🌦️</span>
-                            <span class="metric-label">Precipitation</span>
-                        </div>
-                        <p class="metric-value" id="current-precipitation">-- mm</p>
-                        <p class="metric-caption">Not available offline</p>
+                        <p class="metric-value" id="historical-annual-rainfall">Loading...</p>
+                        <p class="metric-caption">Average per year across 2022–2025</p>
                     </article>
 
                     <article class="metric-card">
                         <div class="metric-top">
                             <span class="metric-icon">💧</span>
-                            <span class="metric-label">Humidity</span>
+                            <span class="metric-label">Daily average</span>
                         </div>
-                        <p class="metric-value" id="current-humidity">--%</p>
-                        <p class="metric-caption">Not available offline</p>
+                        <p class="metric-value" id="historical-daily-rainfall">Loading...</p>
+                        <p class="metric-caption">Across all days in the dataset</p>
                     </article>
 
                     <article class="metric-card">
                         <div class="metric-top">
-                            <span class="metric-icon">💨</span>
-                            <span class="metric-label">Wind</span>
+                            <span class="metric-icon">☔</span>
+                            <span class="metric-label">Rainy-day frequency</span>
                         </div>
-                        <p class="metric-value" id="current-wind">-- km/h</p>
-                        <p class="metric-caption" id="current-feels-like">Feels like --°C</p>
+                        <p class="metric-value" id="historical-rainy-frequency">Loading...</p>
+                        <p class="metric-caption">Days with at least 0.1 mm rainfall</p>
+                    </article>
+
+                    <article class="metric-card">
+                        <div class="metric-top">
+                            <span class="metric-icon">📈</span>
+                            <span class="metric-label">Wettest month</span>
+                        </div>
+                        <p class="metric-value" id="historical-wettest-month">Loading...</p>
+                        <p class="metric-caption" id="historical-wettest-month-rainfall">Highest average daily rainfall</p>
                     </article>
                 </div>
                 <p class="forecast-disclaimer">
-                    The bundled rainfall history does not include current atmospheric conditions.
+                    These are historical gridded rainfall summaries, not current weather conditions or rain-gauge observations.
                 </p>
             </section>
 
@@ -212,32 +212,32 @@
                 </div>
             </section>
 
-            <!-- WEATHER DETAILS -->
+            <!-- ESTIMATE DETAILS -->
             <section id="details" class="details-section">
                 <div class="section-heading compact-heading">
                     <div>
-                        <p class="eyebrow">WEATHER SNAPSHOT</p>
-                        <h2>Weather details unavailable offline</h2>
+                        <p class="eyebrow">HISTORICAL ESTIMATE DETAILS</p>
+                        <h2>How this estimate was calculated</h2>
                     </div>
                 </div>
 
                 <div class="metrics-grid">
                     <article class="metric-card">
                         <div class="metric-top">
-                            <span class="metric-icon">🌡️</span>
-                            <span class="metric-label">Maximum temperature</span>
+                            <span class="metric-icon">📚</span>
+                            <span class="metric-label">Historical samples</span>
                         </div>
-                        <p class="metric-value" id="max-temperature">--°C</p>
-                        <p class="metric-caption">Not included in dataset</p>
+                        <p class="metric-value" id="estimate-sample-count">--</p>
+                        <p class="metric-caption">Used for this calendar date</p>
                     </article>
 
                     <article class="metric-card">
                         <div class="metric-top">
-                            <span class="metric-icon">❄️</span>
-                            <span class="metric-label">Minimum temperature</span>
+                            <span class="metric-icon">🗓️</span>
+                            <span class="metric-label">Estimate method</span>
                         </div>
-                        <p class="metric-value" id="min-temperature">--°C</p>
-                        <p class="metric-caption">Not included in dataset</p>
+                        <p class="metric-value" id="estimate-method">--</p>
+                        <p class="metric-caption">Based on historical dates</p>
                     </article>
 
                     <article class="metric-card">
@@ -441,6 +441,6 @@
         </main>
     </div>
 
-    <script src="script.js?v=7"></script>
+    <script src="script.js?v=8"></script>
 </body>
 </html>
