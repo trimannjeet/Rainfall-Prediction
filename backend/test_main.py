@@ -76,6 +76,25 @@ class LiveForecastValidationTests(unittest.TestCase):
     def setUp(self):
         main.CITY_CACHE.clear()
         main.FORECAST_CACHE.clear()
+        main.PROVIDER_RATE_LIMITED_UNTIL = 0
+
+    @patch("main.requests.get")
+    def test_rate_limit_cooldown_prevents_repeated_provider_requests(self, get):
+        response = Mock()
+        response.status_code = 429
+        response.headers = {"Retry-After": "60"}
+        get.return_value = response
+
+        with self.assertRaises(HTTPException) as first:
+            main.fetch_with_retry(main.WEATHER_URL)
+
+        with self.assertRaises(HTTPException) as second:
+            main.fetch_with_retry(main.GEOCODING_URL)
+
+        self.assertEqual(first.exception.status_code, 429)
+        self.assertEqual(first.exception.headers["Retry-After"], "60")
+        self.assertEqual(second.exception.status_code, 429)
+        self.assertEqual(get.call_count, 1)
 
     def test_home_serves_the_dashboard(self):
         response = main.home()

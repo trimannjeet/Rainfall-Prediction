@@ -1,6 +1,7 @@
 
 from datetime import date, timedelta
 import csv
+import math
 import time
 from pathlib import Path
 from collections import defaultdict
@@ -26,31 +27,50 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 FRONTEND_PATH = PROJECT_ROOT / "frontend"
 CITY_CACHE = {}
 FORECAST_CACHE = {}
-CACHE_TTL_SECONDS = 900
+CITY_CACHE_TTL_SECONDS = 30 * 24 * 60 * 60
+STALE_CITY_CACHE_TTL_SECONDS = 30 * 24 * 60 * 60
+FORECAST_CACHE_TTL_SECONDS = 60 * 60
 STALE_CACHE_TTL_SECONDS = 86400
+PROVIDER_RATE_LIMITED_UNTIL = 0
 
 
 def fetch_with_retry(url, params=None, timeout=20):
     """Retry transient failures, but do not amplify provider rate limits."""
+    global PROVIDER_RATE_LIMITED_UNTIL
+
     params = params or {}
     last_error = None
 
     for attempt in range(4):
+        cooldown_remaining = PROVIDER_RATE_LIMITED_UNTIL - time.time()
+        if cooldown_remaining > 0:
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    "Open-Meteo has temporarily limited requests for this "
+                    "service. Please wait before trying again."
+                ),
+                headers={"Retry-After": str(math.ceil(cooldown_remaining))},
+            )
+
         try:
             response = requests.get(url, params=params, timeout=timeout)
             if response.status_code == 429:
+                retry_after = response.headers.get("Retry-After", "900")
+                try:
+                    retry_after_seconds = max(1, int(retry_after))
+                except ValueError:
+                    retry_after_seconds = 900
+                PROVIDER_RATE_LIMITED_UNTIL = (
+                    time.time() + retry_after_seconds
+                )
                 raise HTTPException(
                     status_code=429,
                     detail=(
                         "Open-Meteo has temporarily limited requests for this "
-                        "service. Please wait 15 minutes before trying again."
+                        "service. Please wait before trying again."
                     ),
-                    headers={
-                        "Retry-After": response.headers.get(
-                            "Retry-After",
-                            "900",
-                        )
-                    },
+                    headers={"Retry-After": str(retry_after_seconds)},
                 )
 
             response.raise_for_status()
@@ -89,7 +109,7 @@ def get_weather_forecast(location):
 
     if cached_forecast is not None:
         age = now - cached_forecast["saved_at"]
-        if age < CACHE_TTL_SECONDS:
+        if age < FORECAST_CACHE_TTL_SECONDS:
             return cached_forecast["data"]
 
     try:
@@ -183,7 +203,7 @@ def find_punjab_city(city):
     cache_key = normalized_city.casefold()
     cached_result = CITY_CACHE.get(cache_key)
     if cached_result is not None:
-        if time.time() - cached_result["saved_at"] < CACHE_TTL_SECONDS:
+        if time.time() - cached_result["saved_at"] < CITY_CACHE_TTL_SECONDS:
             return cached_result["data"]
 
     try:
@@ -202,7 +222,8 @@ def find_punjab_city(city):
     except HTTPException:
         if (
             cached_result is not None
-            and time.time() - cached_result["saved_at"] < STALE_CACHE_TTL_SECONDS
+            and time.time() - cached_result["saved_at"]
+            < STALE_CITY_CACHE_TTL_SECONDS
         ):
             return cached_result["data"]
         raise

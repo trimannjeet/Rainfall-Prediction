@@ -512,13 +512,13 @@ searchForm.addEventListener("submit", (event) => {
 // Load the default city when the page opens.
 loadForecast(cityInput.value.trim());
 
-// Refresh provider conditions and forecasts periodically without a key.
+// Refresh provider conditions and forecasts hourly without a key.
 setInterval(() => {
     const city = cityInput.value.trim();
     if (city.length >= 2) {
         loadForecast(city, false);
     }
-}, 15 * 60 * 1000);
+}, 60 * 60 * 1000);
 
 // Update the selected sidebar link when clicked.
 document.querySelectorAll(".nav-link").forEach((link) => {
